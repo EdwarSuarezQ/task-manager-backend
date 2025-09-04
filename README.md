@@ -14,3 +14,9 @@ Esta aplicación es un **gestor de tareas** que permite crear, editar y eliminar
 git clone https://github.com/edwarSuarezQ/task-manager-backend.git
 
 ```
+
+2. ejecuta con:
+
+```bash
+nmp run dev
+```
