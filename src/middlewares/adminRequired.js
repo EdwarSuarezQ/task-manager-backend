@@ -2,14 +2,15 @@ import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 import { TOKEN_SECRET } from "../config.js";
 
-export const authRequired = async (req, res, next) => {
+export const adminRequired = async (req, res, next) => {
   try {
     const { token } = req.cookies;
 
-    if (!token)
+    if (!token) {
       return res
         .status(401)
         .json({ message: "No token, authorization denied" });
+    }
 
     const decoded = jwt.verify(token, TOKEN_SECRET);
 
@@ -19,10 +20,16 @@ export const authRequired = async (req, res, next) => {
       return res.status(401).json({ message: "Usuario no encontrado" });
     }
 
+    if (user.role !== "admin") {
+      return res.status(403).json({
+        message: "Acceso denegado. Se requieren permisos de administrador",
+      });
+    }
+
     if (!user.isActive) {
       return res
         .status(403)
-        .json({ message: "Cuenta bloqueada. Contacta al administrador." });
+        .json({ message: "Cuenta de administrador desactivada" });
     }
 
     req.user = {
@@ -33,6 +40,6 @@ export const authRequired = async (req, res, next) => {
 
     next();
   } catch (error) {
-    return res.status(401).json({ message: "Token invalido" });
+    res.status(401).json({ message: "Token inválido" });
   }
 };
