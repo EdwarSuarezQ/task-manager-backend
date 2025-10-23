@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 import { TOKEN_SECRET } from "../config.js";
 
-export const adminRequired = async (req, res, next) => {
+export const superAdminRequired = async (req, res, next) => {
   try {
     const { token } = req.cookies;
 
@@ -20,16 +20,17 @@ export const adminRequired = async (req, res, next) => {
       return res.status(401).json({ message: "Usuario no encontrado" });
     }
 
-    if (user.role !== "admin" && user.role !== "super_admin") {
+    if (user.role !== "super_admin") {
       return res.status(403).json({
-        message: "Acceso denegado. Se requieren permisos de administrador",
+        message:
+          "Acceso denegado. Se requieren permisos de super administrador",
       });
     }
 
     if (!user.isActive) {
       return res
         .status(403)
-        .json({ message: "Cuenta de administrador desactivada" });
+        .json({ message: "Cuenta de super administrador desactivada" });
     }
 
     req.user = {

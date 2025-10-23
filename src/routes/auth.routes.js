@@ -13,9 +13,12 @@ import {
   createAdminUser,
   toggleUserStatus,
   deleteUser,
+  changeUserRole,
+  refreshToken,
 } from "../controllers/auth.controller.js";
 import { authRequired } from "../middlewares/validateToken.js";
 import { adminRequired } from "../middlewares/adminRequired.js";
+import { superAdminRequired } from "../middlewares/superAdminRequired.js";
 import { validerSchema } from "../middlewares/validator.middleware.js";
 import {
   registerSchema,
@@ -36,6 +39,8 @@ router.post("/logout", logout);
 router.get("/verify", verifyToken);
 
 router.get("/profile", authRequired, profile);
+
+router.post("/refresh-token", authRequired, refreshToken);
 
 router.put(
   "/profile",
@@ -65,6 +70,8 @@ router.get("/users/:id", adminRequired, getUserById);
 router.put("/users/:id/toggle-status", adminRequired, toggleUserStatus);
 
 router.delete("/users/:id", adminRequired, deleteUser);
+
+router.put("/users/:id/change-role", superAdminRequired, changeUserRole);
 
 router.post(
   "/create-admin",

@@ -129,7 +129,7 @@ export const getUserNotifications = async (req, res) => {
 
 export const getAdminNotifications = async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
+    if (req.user.role !== "admin" && req.user.role !== "super_admin") {
       return res.status(403).json({ message: "No autorizado" });
     }
 
@@ -196,11 +196,6 @@ export const getAdminNotifications = async (req, res) => {
         count: inactiveUsers.length,
       },
     ].filter(Boolean);
-
-    alerts.sort((a, b) => {
-      const priorityOrder = { high: 0, medium: 1, low: 2 };
-      return priorityOrder[a.priority] - priorityOrder[b.priority];
-    });
 
     res.json({
       summary,
