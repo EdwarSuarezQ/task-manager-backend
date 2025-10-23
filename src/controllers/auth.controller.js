@@ -259,13 +259,30 @@ export const getUserById = async (req, res) => {
 };
 
 export const createAdminUser = async (req, res) => {
-  const { username, email, password } = req.body;
+  const { username, email, password, role = "admin" } = req.body;
 
   try {
-    const existingAdmin = await User.findOne({ role: "admin" });
-    if (existingAdmin) {
+    if (role === "super_admin") {
+      const existingSuperAdmin = await User.findOne({ role: "super_admin" });
+      if (existingSuperAdmin) {
+        return res.status(400).json({
+          message:
+            "Ya existe un Super Administrador en el sistema. No se pueden crear más.",
+        });
+      }
+    }
+
+    if (role === "super_admin" && req.user.role !== "super_admin") {
+      return res.status(403).json({
+        message:
+          "Solo un super administrador puede crear otros super administradores",
+      });
+    }
+
+    if (!["admin", "super_admin"].includes(role)) {
       return res.status(400).json({
-        message: "Ya existe un usuario administrador",
+        message:
+          "Rol inválido. Solo se pueden crear administradores o super administradores",
       });
     }
 
@@ -282,7 +299,7 @@ export const createAdminUser = async (req, res) => {
       username,
       email,
       password: passwordHash,
-      role: "admin",
+      role,
       isActive: true,
     });
 
@@ -294,7 +311,9 @@ export const createAdminUser = async (req, res) => {
       email: adminSaved.email,
       role: adminSaved.role,
       createdAt: adminSaved.createdAt,
-      message: "Usuario administrador creado exitosamente",
+      message: `Usuario ${
+        role === "super_admin" ? "super administrador" : "administrador"
+      } creado exitosamente`,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -312,9 +331,21 @@ export const toggleUserStatus = async (req, res) => {
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
 
-    if (user.role === "admin" && user._id.toString() === req.user.id) {
+    if (user.role === "super_admin" && !isActive) {
+      return res.status(403).json({
+        message: "No se puede bloquear al Super Administrador del sistema",
+      });
+    }
+
+    if (user.role === "super_admin" && req.user.role !== "super_admin") {
+      return res.status(403).json({
+        message: "No tienes permisos para bloquear super administradores",
+      });
+    }
+
+    if (user._id.toString() === req.user.id) {
       return res.status(400).json({
-        message: "No puedes bloquear tu propia cuenta de administrador",
+        message: "No puedes bloquear tu propia cuenta",
       });
     }
 
@@ -344,15 +375,115 @@ export const deleteUser = async (req, res) => {
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
 
-    if (user.role === "admin" && user._id.toString() === req.user.id) {
+    if (user.role === "super_admin") {
+      return res.status(403).json({
+        message: "No se puede eliminar al Super Administrador del sistema",
+      });
+    }
+
+    if (user.role === "super_admin" && req.user.role !== "super_admin") {
+      return res.status(403).json({
+        message: "No tienes permisos para eliminar super administradores",
+      });
+    }
+
+    if (user._id.toString() === req.user.id) {
       return res.status(400).json({
-        message: "No puedes eliminar tu propia cuenta de administrador",
+        message: "No puedes eliminar tu propia cuenta",
       });
     }
 
     await User.findByIdAndDelete(id);
 
     res.json({ message: "Usuario eliminado exitosamente" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const changeUserRole = async (req, res) => {
+  const { id } = req.params;
+  const { role } = req.body;
+
+  try {
+    if (!["user", "admin", "super_admin"].includes(role)) {
+      return res.status(400).json({
+        message:
+          "Rol invalido. Los roles validos son: user, admin, super_admin",
+      });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    if (role === "super_admin") {
+      const existingSuperAdmin = await User.findOne({
+        role: "super_admin",
+        _id: { $ne: id },
+      });
+
+      if (existingSuperAdmin) {
+        return res.status(400).json({
+          message:
+            "Ya existe un Super Administrador en el sistema. No puede haber más de uno.",
+        });
+      }
+    }
+
+    if (user._id.toString() === req.user.id) {
+      return res.status(400).json({
+        message: "No puedes cambiar tu propio rol",
+      });
+    }
+
+    if (user.role === "super_admin" && req.user.role !== "super_admin") {
+      return res.status(403).json({
+        message: "No tienes permisos para modificar super administradores",
+      });
+    }
+
+    if (role === "super_admin" && req.user.role !== "super_admin") {
+      return res.status(403).json({
+        message:
+          "Solo un super administrador puede crear otros super administradores",
+      });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      { role },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    res.json({
+      ...updatedUser.toObject(),
+      message: `Rol del usuario cambiado a ${role} exitosamente`,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const refreshToken = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    const token = await createAccessToken({ id: user._id });
+    res.cookie("token", token);
+
+    res.json({
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      isActive: user.isActive,
+      message: "Token actualizado exitosamente",
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
