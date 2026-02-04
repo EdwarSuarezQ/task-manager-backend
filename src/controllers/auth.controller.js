@@ -23,7 +23,11 @@ export const register = async (req, res) => {
 
     const userSaved = await newUser.save();
     const token = await createAccessToken({ id: userSaved._id });
-    res.cookie("token", token);
+    res.cookie("token", token, {
+      sameSite: "none",
+      secure: true,
+      httpOnly: true,
+    });
     res.json({
       id: userSaved._id,
       username: userSaved.username,
@@ -55,7 +59,11 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "contraseña incorrecta" });
 
     const token = await createAccessToken({ id: userFound._id });
-    res.cookie("token", token);
+    res.cookie("token", token, {
+      sameSite: "none",
+      secure: true,
+      httpOnly: true,
+    });
     res.json({
       id: userFound._id,
       username: userFound.username,
@@ -73,6 +81,9 @@ export const login = async (req, res) => {
 export const logout = (req, res) => {
   res.cookie("token", "", {
     expires: new Date(0),
+    sameSite: "none",
+    secure: true,
+    httpOnly: true,
   });
   return res.sendStatus(200);
 };
@@ -218,6 +229,9 @@ export const deleteAccount = async (req, res) => {
     //limpiar la cookie de token
     res.cookie("token", "", {
       expires: new Date(0),
+      sameSite: "none",
+      secure: true,
+      httpOnly: true,
     });
 
     res.json({ message: "Cuenta eliminada exitosamente" });
@@ -474,7 +488,11 @@ export const refreshToken = async (req, res) => {
     }
 
     const token = await createAccessToken({ id: user._id });
-    res.cookie("token", token);
+    res.cookie("token", token, {
+      sameSite: "none",
+      secure: true,
+      httpOnly: true,
+    });
 
     res.json({
       id: user._id,
