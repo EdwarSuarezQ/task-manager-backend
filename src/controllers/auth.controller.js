@@ -32,6 +32,7 @@ export const register = async (req, res) => {
       id: userSaved._id,
       username: userSaved.username,
       email: userSaved.email,
+      token: token,
       createdAt: userSaved.createdAt,
       updatedAt: userSaved.updatedAt,
     });
@@ -70,6 +71,7 @@ export const login = async (req, res) => {
       email: userFound.email,
       role: userFound.role,
       isActive: userFound.isActive,
+      token: token,
       createdAt: userFound.createdAt,
       updatedAt: userFound.updatedAt,
     });
@@ -105,7 +107,11 @@ export const profile = async (req, res) => {
 };
 
 export const verifyToken = async (req, res) => {
-  const { token } = req.cookies;
+  let { token } = req.cookies;
+
+  if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+    token = req.headers.authorization.split(" ")[1];
+  }
 
   if (!token) return res.status(401).json({ message: "unauthorized" });
 
@@ -120,6 +126,7 @@ export const verifyToken = async (req, res) => {
       username: userFound.username,
       email: userFound.email,
       role: userFound.role,
+      token: token,
       isActive: userFound.isActive,
     });
   });
