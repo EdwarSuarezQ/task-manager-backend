@@ -12,8 +12,15 @@ const app = express();
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN, // Permite solo el frontend de Vite
-    credentials: true, // Habilita el envío de cookies si es necesario
+    origin: (origin, callback) => {
+      const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : [];
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
   })
 );
 app.use(morgan("dev")); // muestra un log en la consola con toda la informacion de la peticion
