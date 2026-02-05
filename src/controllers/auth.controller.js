@@ -1,6 +1,6 @@
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
-import { createAccessToken } from "../libs/jwt.js";
+import { createAccessToken, verifyToken as verifyJWT } from "../libs/jwt.js";
 import jwt from "jsonwebtoken";
 import { TOKEN_SECRET } from "../config.js";
 
@@ -113,18 +113,18 @@ export const profile = async (req, res) => {
 };
 
 export const verifyToken = async (req, res) => {
-  let { token } = req.cookies;
+  try {
+    let { token } = req.cookies;
 
-  if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
-    token = req.headers.authorization.split(" ")[1];
-  }
+    if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+      token = req.headers.authorization.split(" ")[1];
+    }
 
-  if (!token) return res.status(401).json({ message: "unauthorized" });
+    if (!token) return res.status(401).json({ message: "unauthorized" });
 
-  jwt.verify(token, TOKEN_SECRET, async (err, user) => {
-    if (err) return res.status(401).json({ message: "unauthorized" });
+    const decoded = await verifyJWT(token);
+    const userFound = await User.findById(decoded.id);
 
-    const userFound = await User.findById(user.id);
     if (!userFound) return res.status(401).json({ message: "unauthorized" });
 
     return res.json({
@@ -138,7 +138,9 @@ export const verifyToken = async (req, res) => {
         isActive: userFound.isActive,
       },
     });
-  });
+  } catch (error) {
+    return res.status(401).json({ message: "unauthorized" });
+  }
 };
 
 export const updateProfile = async (req, res) => {
