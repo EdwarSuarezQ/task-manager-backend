@@ -29,10 +29,13 @@ export const register = async (req, res) => {
       httpOnly: true,
     });
     res.json({
-      id: userSaved._id,
-      username: userSaved.username,
-      email: userSaved.email,
+      success: true,
       token: token,
+      user: {
+        id: userSaved._id,
+        username: userSaved.username,
+        email: userSaved.email,
+      },
       createdAt: userSaved.createdAt,
       updatedAt: userSaved.updatedAt,
     });
@@ -66,12 +69,15 @@ export const login = async (req, res) => {
       httpOnly: true,
     });
     res.json({
-      id: userFound._id,
-      username: userFound.username,
-      email: userFound.email,
-      role: userFound.role,
-      isActive: userFound.isActive,
+      success: true,
       token: token,
+      user: {
+        id: userFound._id,
+        username: userFound.username,
+        email: userFound.email,
+        role: userFound.role,
+        isActive: userFound.isActive,
+      },
       createdAt: userFound.createdAt,
       updatedAt: userFound.updatedAt,
     });
@@ -122,12 +128,15 @@ export const verifyToken = async (req, res) => {
     if (!userFound) return res.status(401).json({ message: "unauthorized" });
 
     return res.json({
-      id: userFound._id,
-      username: userFound.username,
-      email: userFound.email,
-      role: userFound.role,
-      token: token,
-      isActive: userFound.isActive,
+      success: true,
+      valid: true,
+      user: {
+        id: userFound._id,
+        username: userFound.username,
+        email: userFound.email,
+        role: userFound.role,
+        isActive: userFound.isActive,
+      },
     });
   });
 };
