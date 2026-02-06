@@ -20,3 +20,4 @@ git clone https://github.com/edwarSuarezQ/task-manager-backend.git
 ```bash
 nmp run dev
 ```
+[Ver](http://task-manager-frontend-beta-snowy.vercel.app/)
