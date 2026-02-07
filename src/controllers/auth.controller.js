@@ -357,25 +357,31 @@ export const toggleUserStatus = async (req, res) => {
   const { id } = req.params;
   const { isActive } = req.body;
 
+  console.log(`Intentando cambiar estado de usuario ${id} a isActive: ${isActive}`);
+
   try {
     const user = await User.findById(id);
     if (!user) {
+      console.log("Usuario a modificar no encontrado");
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
 
     if (user.role === "super_admin" && !isActive) {
+      console.log("Intento de bloquear Super Administrador rechazado");
       return res.status(403).json({
         message: "No se puede bloquear al Super Administrador del sistema",
       });
     }
 
     if (user.role === "super_admin" && req.user.role !== "super_admin") {
+      console.log("Intento de bloquear Super Administrador sin permisos suficientes");
       return res.status(403).json({
         message: "No tienes permisos para bloquear super administradores",
       });
     }
 
-    if (user._id.toString() === req.user.id) {
+    if (user._id.toString() === req.user.id.toString()) {
+      console.log("Intento de autobloqueo rechazado");
       return res.status(400).json({
         message: "No puedes bloquear tu propia cuenta",
       });
@@ -387,6 +393,8 @@ export const toggleUserStatus = async (req, res) => {
       { new: true, runValidators: true }
     ).select("-password");
 
+    console.log("Estado de usuario actualizado con éxito");
+
     res.json({
       ...updatedUser.toObject(),
       message: `Usuario ${
@@ -394,6 +402,7 @@ export const toggleUserStatus = async (req, res) => {
       } exitosamente`,
     });
   } catch (error) {
+    console.error("Error en toggleUserStatus:", error.message);
     res.status(500).json({ message: error.message });
   }
 };
