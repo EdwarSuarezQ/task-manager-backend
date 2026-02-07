@@ -127,6 +127,12 @@ export const verifyToken = async (req, res) => {
 
     if (!userFound) return res.status(401).json({ message: "unauthorized" });
 
+    if (!userFound.isActive) {
+      return res.status(403).json({ 
+        message: "Cuenta bloqueada. Contacta al administrador." 
+      });
+    }
+
     return res.json({
       success: true,
       valid: true,
