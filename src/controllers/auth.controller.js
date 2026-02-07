@@ -428,7 +428,7 @@ export const deleteUser = async (req, res) => {
       });
     }
 
-    if (user._id.toString() === req.user.id) {
+    if (user._id.toString() === req.user.id.toString()) {
       return res.status(400).json({
         message: "No puedes eliminar tu propia cuenta",
       });
@@ -473,7 +473,7 @@ export const changeUserRole = async (req, res) => {
       }
     }
 
-    if (user._id.toString() === req.user.id) {
+    if (user._id.toString() === req.user.id.toString()) {
       return res.status(400).json({
         message: "No puedes cambiar tu propio rol",
       });
