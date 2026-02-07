@@ -266,12 +266,9 @@ export const deleteAccount = async (req, res) => {
 
 export const getUsers = async (req, res) => {
   try {
-
-
     const users = await User.find({})
       .select("-password")
       .sort({ createdAt: -1 });
-
 
     res.json(users);
   } catch (error) {
@@ -392,8 +389,6 @@ export const toggleUserStatus = async (req, res) => {
       { isActive },
       { new: true, runValidators: true }
     ).select("-password");
-
-
 
     res.json({
       ...updatedUser.toObject(),

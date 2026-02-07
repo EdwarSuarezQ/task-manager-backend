@@ -23,8 +23,6 @@ export const adminRequired = async (req, res, next) => {
       return res.status(401).json({ message: "Usuario no encontrado" });
     }
 
-
-
     if (user.role !== "admin" && user.role !== "super_admin") {
       return res.status(403).json({
         message: "Acceso denegado. Se requieren permisos de administrador",
