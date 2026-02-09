@@ -60,7 +60,11 @@ export const login = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, userFound.password);
     if (!isMatch)
-      return res.status(400).json({ message: "contraseña incorrecta" });
+      return res.status(400).json({ message: "contraseña incorrecta" });
+
+    // Actualizar última conexión
+    userFound.lastLogin = new Date();
+    await userFound.save();
 
     const token = await createAccessToken({ id: userFound._id });
     res.cookie("token", token, {

@@ -134,7 +134,7 @@ export const getAdminNotifications = async (req, res) => {
     }
 
     const users = await User.find();
-    const tasks = await Tasks.find();
+    const tasks = await Tasks.find().populate("user", "username email");
 
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -178,6 +178,62 @@ export const getAdminNotifications = async (req, res) => {
       newUsersThisWeek: newUsersThisWeek.length,
     };
 
+    const detailedNotifications = [];
+
+    // Agregar tareas vencidas
+    overdueTasks.forEach((task) => {
+      detailedNotifications.push({
+        type: "overdue",
+        message: `La tarea "${task.title}" está vencida`,
+        taskId: task._id,
+        taskTitle: task.title,
+        username: task.user?.username || "Usuario desconocido",
+        dueDate: task.date,
+        generatedAt: now,
+      });
+    });
+
+    // Agregar tareas que vencen hoy
+    tasksDueToday.forEach((task) => {
+      detailedNotifications.push({
+        type: "dueToday",
+        message: `La tarea "${task.title}" vence hoy`,
+        taskId: task._id,
+        taskTitle: task.title,
+        username: task.user?.username || "Usuario desconocido",
+        dueDate: task.date,
+        generatedAt: now,
+      });
+    });
+
+    // Agregar nuevos usuarios
+    newUsersThisWeek.forEach((user) => {
+      detailedNotifications.push({
+        type: "newUser",
+        message: `Nuevo usuario registrado: ${user.username}`,
+        userId: user._id,
+        username: user.username,
+        email: user.email,
+        createdAt: user.createdAt,
+        generatedAt: now,
+      });
+    });
+
+    // Ordenar: primero tareas vencidas, luego las de hoy, luego nuevos usuarios
+    detailedNotifications.sort((a, b) => {
+      const priority = { overdue: 1, dueToday: 2, newUser: 3 };
+      if (priority[a.type] !== priority[b.type]) {
+        return priority[a.type] - priority[b.type];
+      }
+      if (a.dueDate && b.dueDate) {
+        return new Date(a.dueDate) - new Date(b.dueDate);
+      }
+      if (a.createdAt && b.createdAt) {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      }
+      return 0;
+    });
+
     const alerts = [
       overdueTasks.length > 0 && {
         message: `${overdueTasks.length} tarea(s) vencida(s) en el sistema`,
@@ -200,6 +256,7 @@ export const getAdminNotifications = async (req, res) => {
     res.json({
       summary,
       alerts,
+      notifications: detailedNotifications,
     });
   } catch (error) {
     console.error("Error en getAdminNotifications:", error);
