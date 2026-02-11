@@ -30,6 +30,10 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    readNotifications: {
+      type: [String],
+      default: [],
+    },
   },
   {
     timestamps: true,

@@ -87,6 +87,9 @@ const checkTaskStatus = (taskDate) => {
 
 export const getUserNotifications = async (req, res) => {
   try {
+    const user = await User.findById(req.user.id);
+    const readNotifications = user.readNotifications || [];
+
     const tasks = await Tasks.find({
       user: req.user.id,
       completed: false,
@@ -96,9 +99,12 @@ export const getUserNotifications = async (req, res) => {
 
     const notifications = tasks
       .map((task) => {
-        const status = checkTaskStatus(task.date);
+        // Si la notificación ya fue leída, no la mostramos
+        if (readNotifications.includes(task._id.toString())) return null;
 
+        const status = checkTaskStatus(task.date);
         let message = null;
+
         if (status === "overdue") {
           message = `La tarea "${task.title}" está vencida.`;
         } else if (status === "dueToday") {
@@ -113,7 +119,8 @@ export const getUserNotifications = async (req, res) => {
           message,
           taskId: task._id,
           dueDate: task.date,
-          generatedAt: now,
+          generatedAt: task.date, // Usamos la fecha de la tarea para el tiempo relativo
+          type: status, 
         };
       })
       .filter(Boolean);
@@ -132,6 +139,9 @@ export const getAdminNotifications = async (req, res) => {
     if (req.user.role !== "admin" && req.user.role !== "super_admin") {
       return res.status(403).json({ message: "No autorizado" });
     }
+
+    const currentUser = await User.findById(req.user.id);
+    const readNotifications = currentUser.readNotifications || [];
 
     const users = await User.find();
     const tasks = await Tasks.find().populate("user", "username email");
@@ -182,41 +192,47 @@ export const getAdminNotifications = async (req, res) => {
 
     // Agregar tareas vencidas
     overdueTasks.forEach((task) => {
-      detailedNotifications.push({
-        type: "overdue",
-        message: `La tarea "${task.title}" está vencida`,
-        taskId: task._id,
-        taskTitle: task.title,
-        username: task.user?.username || "Usuario desconocido",
-        dueDate: task.date,
-        generatedAt: now,
-      });
+      if (!readNotifications.includes(task._id.toString())) {
+        detailedNotifications.push({
+          type: "overdue",
+          message: `La tarea "${task.title}" está vencida`,
+          taskId: task._id,
+          taskTitle: task.title,
+          username: task.user?.username || "Usuario desconocido",
+          dueDate: task.date,
+          generatedAt: task.date, // Fecha real del evento
+        });
+      }
     });
 
     // Agregar tareas que vencen hoy
     tasksDueToday.forEach((task) => {
-      detailedNotifications.push({
-        type: "dueToday",
-        message: `La tarea "${task.title}" vence hoy`,
-        taskId: task._id,
-        taskTitle: task.title,
-        username: task.user?.username || "Usuario desconocido",
-        dueDate: task.date,
-        generatedAt: now,
-      });
+      if (!readNotifications.includes(task._id.toString())) {
+        detailedNotifications.push({
+          type: "dueToday",
+          message: `La tarea "${task.title}" vence hoy`,
+          taskId: task._id,
+          taskTitle: task.title,
+          username: task.user?.username || "Usuario desconocido",
+          dueDate: task.date,
+          generatedAt: task.date, // Fecha real del evento
+        });
+      }
     });
 
     // Agregar nuevos usuarios
     newUsersThisWeek.forEach((user) => {
-      detailedNotifications.push({
-        type: "newUser",
-        message: `Nuevo usuario registrado: ${user.username}`,
-        userId: user._id,
-        username: user.username,
-        email: user.email,
-        createdAt: user.createdAt,
-        generatedAt: now,
-      });
+      if (!readNotifications.includes(user._id.toString())) {
+        detailedNotifications.push({
+          type: "newUser",
+          message: `Nuevo usuario registrado: ${user.username}`,
+          userId: user._id,
+          username: user.username,
+          email: user.email,
+          createdAt: user.createdAt,
+          generatedAt: user.createdAt, // Fecha real del evento
+        });
+      }
     });
 
     // Ordenar: primero tareas vencidas, luego las de hoy, luego nuevos usuarios
@@ -263,5 +279,24 @@ export const getAdminNotifications = async (req, res) => {
     return res
       .status(500)
       .json({ message: "Error al obtener alertas del admin" });
+  }
+};
+
+export const markNotificationAsRead = async (req, res) => {
+  try {
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ message: "Notification ID required" });
+
+    const user = await User.findById(req.user.id);
+    
+    if (!user.readNotifications.includes(id)) {
+      user.readNotifications.push(id);
+      await user.save();
+    }
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error("Error marking notification as read:", error);
+    return res.status(500).json({ message: "Error updating notification status" });
   }
 };

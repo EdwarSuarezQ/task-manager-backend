@@ -8,6 +8,7 @@ import {
   deleteTask,
   getUserNotifications,
   getAdminNotifications,
+  markNotificationAsRead,
 } from "../controllers/tasks.controller.js";
 import { validerSchema } from "../middlewares/validator.middleware.js";
 import { createTaskSchame } from "../schemas/task.schema.js";
@@ -32,5 +33,7 @@ router.put("/tasks/:id", authRequired, updateTask);
 router.get("/notifications", authRequired, getUserNotifications);
 
 router.get("/admin/notifications", authRequired, getAdminNotifications);
+
+router.post("/notifications/read", authRequired, markNotificationAsRead);
 
 export default router;
